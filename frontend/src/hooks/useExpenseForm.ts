@@ -47,6 +47,9 @@ export function useExpenseForm({ initialData, onSubmit }: UseExpenseFormProps) {
 
     if (!formData.date) {
       newErrors.date = "Date is required";
+    } else if (formData.date > formatDate(new Date())) {
+      newErrors.date =
+        "Expense date can't be in the future — you can't have spent money on a date that hasn't happened yet";
     }
 
     setErrors(newErrors);
