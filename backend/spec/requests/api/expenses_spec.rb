@@ -16,12 +16,38 @@ RSpec.describe "Api::Expenses", type: :request do
       expect(json.length).to eq(2)
     end
 
-    it "returns expenses in descending order by created_at" do
+    it "returns expenses in descending order by date" do
       get "/api/expenses"
 
       json = JSON.parse(response.body)
       expect(json.first["id"]).to eq(expense2.id)
       expect(json.last["id"]).to eq(expense1.id)
+    end
+
+    it "orders by expense date, not by creation timestamp (BUG-001 regression)" do
+      # expense_old is created most recently, but its expense date is far in the past.
+      # expense_recent is created first (earlier created_at), but its expense date is today.
+      # The list must reflect the expense date order, not the creation order.
+      expense_old = Expense.create!(
+        description: "Old dinner",
+        amount: 30.00,
+        category: food_category,
+        date: 10.days.ago.to_date
+      )
+      expense_recent = Expense.create!(
+        description: "Today's coffee",
+        amount: 5.00,
+        category: food_category,
+        date: Date.today
+      )
+
+      get "/api/expenses"
+
+      json = JSON.parse(response.body)
+      returned_ids_in_order = json.map { |e| e["id"] }
+
+      expect(returned_ids_in_order.index(expense_recent.id))
+        .to be < returned_ids_in_order.index(expense_old.id)
     end
   end
 
